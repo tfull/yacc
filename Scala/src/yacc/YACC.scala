@@ -28,7 +28,7 @@ class Symbol{
 }
 
 class NonTerminal(val key: String) extends Symbol{
-    override def toString(): String = "NonTerminal(" + key + ")"
+    override def toString(): String = "N(" + key + ")"
     override def hashCode = 1
     override def equals(x: Any) = x match{
         case t: NonTerminal => this.key == t.key
@@ -43,7 +43,7 @@ class NonTerminal(val key: String) extends Symbol{
 }
 
 class Terminal(val key: String) extends Symbol{
-    override def toString(): String = "Terminal(" + key + ")"
+    override def toString(): String = "T(" + key + ")"
     override def hashCode = 2
     override def equals(x: Any) = x match{
         case t: Terminal => this.key == t.key
@@ -89,7 +89,7 @@ class YACC(val productions: Array[(NonTerminal, Array[Symbol])]){
         var ver = mutable.Set(v.toArray:_*)
 
         while(flag){
-            System.err.println(ver)
+            System.err.println(Parser.show(ver))
             flag = false
             for(term <- ver.toArray){
                 val ((a, (alpha, xbeta)), z) = term
@@ -142,7 +142,6 @@ class YACC(val productions: Array[(NonTerminal, Array[Symbol])]){
         var index = 1
 
         while(flag){
-            System.err.println(sete)
             flag = false
             for(seti <- map.toArray.map(_._1)){
                 for(prod <- seti){
