@@ -19,3 +19,10 @@ A  % A times B          % ASTMul $1 $3
 A  % B                  % $1
 B  % int                % ASTInt $1
 B  % lpar S rpar        % $2
+
+/ S' % S $                  % $1
+/ S  % V equal E            % $1
+/ S  % E                    % $1
+/ E  % V                    % $1
+/ V  % x                    % $1
+/ V  % star E               % $1

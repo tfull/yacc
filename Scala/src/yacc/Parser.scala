@@ -4,19 +4,19 @@ import java.util.Scanner
 import scala.io.Source
 import scala.collection.mutable
 
-class Parser(val modules: Array[String], val token: String, val syntax_tree: String, val token_map: Map[String, String], val rules: Array[((NonTerminal, Array[Symbol]), YTree)]){
+class Parser(val modules: Array[String], val token: String, val syntax_tree: String, val token_map: Map[String, String], val rules: Array[((NonTerminal, SymbolArray), YTree)]){
     override def toString(): String = {
         "Module(" + modules.mkString("[", ",", "]") + ")\n" + "Token(" + token + ")\n" + "SyntaxTree(" + syntax_tree + ")\n" + "TokenMap(" + token_map.toString() + ")\n" + "Rules(" + Parser.showRules(rules) + ")"
     }
 }
 
 object Parser{
-    type Production = (NonTerminal, Array[Symbol])
+    type Production = (NonTerminal, SymbolArray)
 
     def showRules(rules: Array[(Production, YTree)]): String = {
         rules.map({ rule => 
             val ((nt, xs), tr) = rule
-            nt.toString() + " -> " + xs.mkString("[", ",", "]") + " => " + tr.toString()
+            "{ " + nt.toString() + " -> " + xs.toString() + " => " + tr.toString() + " }"
         }).mkString("[", ",", "]")
     }
 
@@ -32,7 +32,7 @@ object Parser{
         var rls: mutable.ArrayBuffer[(Production, YTree)] = null
 
         lines.foreach({ line =>
-            if(line.length == 0){
+            if(line.length == 0 || line(0) == '/'){
             }else if(line(0) == '%'){
                 var scanner = new Scanner(line)
                 scanner.next() match{
@@ -72,7 +72,7 @@ object Parser{
 
                         val nt = new NonTerminal(array(0).trim)
 
-                        val ar: Array[Symbol] = array(1).split("\\s+").map({ x =>
+                        val ar: SymbolArray = new SymbolArray(array(1).split("\\s+").map({ x =>
                             if(x(0) >= 'A' && x(0) <= 'Z'){
                                 new NonTerminal(x)
                             }else if(x(0) >= 'a' && x(0) <= 'z' || x == "$"){
@@ -80,11 +80,12 @@ object Parser{
                             }else{
                                 throw new Exception()
                             }
-                        })
+                        }))
 
                         val br: List[String] = "(" :: array(2).replace("(", " ( ").replace(")", " ) ").split("\\s+").toList ++ List(")")
 
                         val (ytree, rs) = makeTree(br)
+
                         if(rs.length > 0){
                             throw new Exception()
                         }
@@ -136,6 +137,7 @@ object Parser{
         }
     }
 
+    /*
     def debug(fname: String): Array[(NonTerminal, Array[Symbol])] = {
         val abuffer: mutable.ArrayBuffer[(NonTerminal, Array[Symbol])] = mutable.ArrayBuffer()
         val source = Source.fromFile(fname)
@@ -161,12 +163,5 @@ object Parser{
 
         abuffer.toArray
     }
-
-    def show(o: Any): String = {
-        o match{
-            case x: Array[_] => x.map(show(_)).mkString("[",",","]")
-            case x: (_, _) => "(" + show(x._1) + "," + show(x._2) + ")"
-            case x => x.toString()
-        }
-    }
+    */
 }

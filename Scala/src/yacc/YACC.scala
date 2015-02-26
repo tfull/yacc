@@ -1,65 +1,10 @@
 package yacc
 
+import java.io.PrintWriter
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
-class YTree{
-    override def toString(): String = "Expression"
-}
-
-class YNode(val name: String, val trees: Array[YTree]) extends YTree{
-    override def toString(): String = "YNode{" + name + "}" + trees.mkString("(", "," , ")")
-}
-
-class YLeaf(val number: Int) extends YTree{
-    override def toString(): String = "YLeaf(" + number.toString + ")"
-}
-
-class Symbol{
-    override def toString(): String = "Symbol"
-    def <(x: Symbol) = false
-    def ==(x: Symbol) = true
-    override def hashCode = 0
-    override def equals(x: Any) = x match{
-        case s: Symbol => true
-        case _ => false
-    }
-    def >(x: Symbol) = false
-}
-
-class NonTerminal(val key: String) extends Symbol{
-    override def toString(): String = "N(" + key + ")"
-    override def hashCode = 1
-    override def equals(x: Any) = x match{
-        case t: NonTerminal => this.key == t.key
-        case _ => false
-    }
-    def <(x: NonTerminal) = this.key < x.key
-    def <(x: Terminal) = true
-    def >(x: NonTerminal) = this.key > x.key
-    def >(x: Terminal) = false
-    def ==(x: NonTerminal) = this.key == x.key
-    def ==(x: Terminal) = false
-}
-
-class Terminal(val key: String) extends Symbol{
-    override def toString(): String = "T(" + key + ")"
-    override def hashCode = 2
-    override def equals(x: Any) = x match{
-        case t: Terminal => this.key == t.key
-        case _ => false
-    }
-    def <(x: NonTerminal) = false
-    def <(x: Terminal) = this.key < x.key
-    def >(x: NonTerminal) = true
-    def >(x: Terminal) = this.key > x.key
-    def ==(x: NonTerminal) = false
-    def ==(x: Terminal) = this.key == x.key
-}
-
-class YACC(val productions: Array[(NonTerminal, Array[Symbol])]){
-    type Production = (NonTerminal, Array[Symbol])
-    type Location = (Array[Symbol], Array[Symbol])
+class YACC(val productions: Array[(NonTerminal, SymbolArray)]){
+    type Production = (NonTerminal, SymbolArray)
     type Term = ((NonTerminal, Location), Terminal)
     type Vertex = Set[Term]
     // type Edge = (Vertex, Symbol, Vertex)
@@ -89,19 +34,17 @@ class YACC(val productions: Array[(NonTerminal, Array[Symbol])]){
         var ver = mutable.Set(v.toArray:_*)
 
         while(flag){
-            System.err.println(Parser.show(ver))
             flag = false
             for(term <- ver.toArray){
-                val ((a, (alpha, xbeta)), z) = term
-                if(xbeta.length > 0){
-                    var x = xbeta(0)
-                    x match{
+                val ((a, l), z) = term
+                if(! l.isBottom){
+                    l.next match{
                         case n: NonTerminal => {
-                            var beta = xbeta.slice(1, xbeta.length)
+                            var beta = l.following
                             for(prod <- this.productions){
-                                if(prod._1 == a){
+                                if(prod._1 == n){
                                     for(w <- first(beta ++ Array(z))){
-                                        var tm: Term = (((n, (Array(), prod._2)), w))
+                                        var tm: Term = (((n, new Location(prod._2, 0)), w))
                                         if(! ver.contains(tm)){
                                             ver += tm
                                             flag = true
@@ -121,66 +64,71 @@ class YACC(val productions: Array[(NonTerminal, Array[Symbol])]){
     def goto(v: Vertex, q: Symbol): Vertex = {
         var w: mutable.Set[Term] = mutable.Set()
         for(term <- v){
-            var ((a, (alpha, xbeta)), z) = term
-            if(xbeta.length > 0){
-                var x = xbeta(0)
+            var ((a, l), z) = term
+            if(! l.isBottom){
+                var x = l.next
                 if(x == q){
-                    var beta = xbeta.slice(1, xbeta.length)
-                    w += (((a, (alpha ++ Array(x), beta)), z))
+                    w += (((a, l.go), z))
                 }
             }
         }
         closure(w.toSet)
     }
 
-    def makeGraph(){
+    def makeGraph(log_file: String){
         var flag = true
-        var init: Vertex = closure(Set(((new NonTerminal("S'"), (Array(), Array(new NonTerminal("S"), new Terminal("$")))), null)))
-        // var sett: mutable.Set[Vertex] = Set(init)
+        var init: Vertex = closure(Set(((new NonTerminal("S'"), new Location(new SymbolArray(Array(new NonTerminal("S"), new Terminal("$"))), 0)), null)))
+        val endt = new Terminal("$")
         var sete: mutable.Set[/*Edge*/(Int, Symbol, Int)] = mutable.Set()
         var map: mutable.Map[Vertex, Int] = mutable.Map({init -> 0})
         var index = 1
+        var log: PrintWriter = null
 
         while(flag){
             flag = false
             for(seti <- map.toArray.map(_._1)){
                 for(prod <- seti){
-                    val ((a, (alpha, xbeta)), z) = prod
-                    if(xbeta.length > 0){
-                        val x = xbeta(0)
-                        val setj = goto(seti, x)
-                        var es = map(seti)
-                        var eg = 0
-
-                        if(map.contains(setj)){
-                            eg = map(setj)
+                    val ((a, l), z) = prod
+                    if(! l.isBottom){
+                        val x = l.next
+                        if(x == endt){
                         }else{
-                            map(setj) = index
-                            eg = index
-                            index += 1
-                            flag = true
-                        }
+                            val setj = goto(seti, x)
+                            var es = map(seti)
+                            var eg = 0
 
-                        val edge = (es, x, eg)
+                            if(map.contains(setj)){
+                                eg = map(setj)
+                            }else{
+                                map(setj) = index
+                                eg = index
+                                index += 1
+                                flag = true
+                            }
 
-                        if(! sete.contains(edge)){
-                            sete += edge
-                            flag = true
+                            val edge = (es, x, eg)
+
+                            if(! sete.contains(edge)){
+                                sete += edge
+                                flag = true
+                            }
                         }
                     }
                 }
             }
         }
+
+        val vertex_n: Int = map.size
     }
 }
 
 object YACC{
-    type Production = (NonTerminal, Array[Symbol])
+    type Production = (NonTerminal, SymbolArray)
 
     def gatherTerminalSet(ps: Array[Production]): Set[Terminal] = {
         var s: mutable.Set[Terminal] = mutable.Set()
         for(p <- ps){
-            for(x <- p._2){
+            for(x <- p._2.array){
                 x match{
                     case t: Terminal => s += t
                     case _ => ;
@@ -193,7 +141,7 @@ object YACC{
     def gatherNonTerminalSet(ps: Array[Production]): Set[NonTerminal] = {
         var s: mutable.Set[NonTerminal] = mutable.Set()
         for(p <- ps){
-            for(x <- p._2){
+            for(x <- p._2.array){
                 x match{
                     case t: NonTerminal => s += t
                     case _ => ;
@@ -250,7 +198,7 @@ object YACC{
 
                     var i = 0
                     var fl = true
-                    var ab: ArrayBuffer[Int] = ArrayBuffer()
+                    var ab: mutable.ArrayBuffer[Int] = mutable.ArrayBuffer()
                     while(i < xs.length && fl){
                         fl = xs(i) match{
                             case n: NonTerminal => nullable_set.contains(n)
