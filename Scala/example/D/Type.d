@@ -1,11 +1,13 @@
 import std.conv: to;
 
-enum TAST{
-    TASTINT, TASTADD, TASTMUL
+enum ASTType{
+    INT, ADD, MUL
 }
 
+alias ASTType At;
+
 class AST{
-    TAST type;
+    ASTType type;
     string show(){
         return "AST";
     }
@@ -14,7 +16,7 @@ class AST{
 class ASTInt : AST{
     int value;
     this(int v){
-        this.type = TAST.TASTINT;
+        this.type = At.INT;
         this.value = v;
     }
 
@@ -27,7 +29,7 @@ class ASTAdd : AST{
     AST a;
     AST b;
     this(AST a, AST b){
-        this.type = TAST.TASTADD;
+        this.type = At.ADD;
         this.a = a;
         this.b = b;
     }
@@ -41,7 +43,7 @@ class ASTMul : AST{
     AST a;
     AST b;
     this(AST a, AST b){
-        this.type = TAST.TASTMUL;
+        this.type = At.MUL;
         this.a = a;
         this.b = b;
     }
@@ -52,8 +54,10 @@ class ASTMul : AST{
 }
 
 enum TokenType{
-    TOKENINT, TOKENTIMES, TOKENPLUS, TOKENLPAR, TOKENRPAR
+    INT, TIMES, PLUS, LPAR, RPAR
 }
+
+alias TokenType Tt;
 
 class Token{
     int line;
@@ -72,35 +76,50 @@ class TokenInt : Token{
     int v;
     this(int v, int line = -1, int character = -1){
         super(line, character);
-        this.type = TokenType.TOKENINT;
+        this.type = Tt.INT;
         this.v = v;
+    }
+    override string show(){
+        return "TokenInt(" ~ to!(string)(v) ~ ")";
     }
 }
 
 class TokenPlus : Token{
     this(int line = -1, int character = -1){
         super(line, character);
-        this.type = TokenType.TOKENPLUS;
+        this.type = Tt.PLUS;
+    }
+    override string show(){
+        return "TokenPlus";
     }
 }
 
-class TokenTimes : Token{
+class TokenStar : Token{
     this(int line = -1, int character = -1){
         super(line, character);
-        this.type = TokenType.TOKENTIMES;
+        this.type = Tt.TIMES;
+    }
+    override string show(){
+        return "TokenStar";
     }
 }
 
 class TokenLPar : Token{
     this(int line = -1, int character = -1){
         super(line, character);
-        this.type = TokenType.TOKENLPAR;
+        this.type = Tt.LPAR;
+    }
+    override string show(){
+        return "TokenLPar";
     }
 }
 
 class TokenRPar : Token{
     this(int line = -1, int character = -1){
         super(line, character);
-        this.type = TokenType.TOKENRPAR;
+        this.type = Tt.RPAR;
+    }
+    override string show(){
+        return "TokenRPar";
     }
 }
