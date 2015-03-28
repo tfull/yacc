@@ -22,10 +22,10 @@ void makeTokens(Token *ts, int length, int capacity){
 
 Position nextPosition(Position p, char c){
     if(c == '\n'){
-        Position q = { p.line + 1, 0 };
+        Position q = { p.line + 1U, 0U };
         return q;
     }else{
-        Position q = { p.line, p.character + 1 };
+        Position q = { p.line, p.character + 1U };
         return q;
     }
 }
@@ -36,7 +36,7 @@ void pushChar(char *cs, unsigned int *capacity, unsigned int *index, char x){
         unsigned int ncap = *capacity * 2U;
         char *ncs = (char*)malloc(sizeof(char) * ncap);
 
-        for(i = 0; i < *index; i++){
+        for(i = 0U; i < *index; i++){
             ncs[i] = cs[i];
         }
         ncs[*index] = x;
@@ -55,7 +55,7 @@ void pushToken(Token *ts, unsigned int *capacity, unsigned int *index, Token x){
         unsigned int ncap = *capacity * 2U;
         Token *nts = (Token*)malloc(sizeof(Token) * ncap);
 
-        for(i = 0; i < *index; i++){
+        for(i = 0U; i < *index; i++){
             nts[i] = ts[i];
         }
         nts[*index] = x;        

@@ -19,10 +19,10 @@ typedef struct{
 typedef struct{
     TokenType tt;
     TokenValue tv;
-    int line_s;
-    int character_s;
-    int line_g;
-    int character_g;
+    unsigned int line_s;
+    unsigned int character_s;
+    unsigned int line_g;
+    unsigned int character_g;
 }Token;
 
 #endif

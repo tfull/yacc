@@ -71,7 +71,7 @@ void debugTokens(Token *ts){
 
 void debugTree(Tree *tree){
     if(tree->type == S_INT){
-        printf("Int(%d)", tree->node.s_int);
+        printf("Int(%d)", tree->node.s_int.value);
     }else if(tree->type == S_ADD){
         printf("Add(");
         debugTree(tree->node.s_add.tree1);

@@ -47,11 +47,11 @@ typedef union{
     TreeMinus s_minus;
 }Node;
 
-typedef struct{
+typedef struct _Tree{
     Type type;
     Node node;
-    int line_s;
-    int char_s;
-    int line_g;
-    int char_g;
+    unsigned int line_s;
+    unsigned int char_s;
+    unsigned int line_g;
+    unsigned int char_g;
 }Tree;
