@@ -160,6 +160,8 @@ Token *tokenize(char *cs){
                 }
             }else{
                 raiseTokenError(position, c);
+                free(store);
+                free(tokens);
                 return NULL;
             }
         }
