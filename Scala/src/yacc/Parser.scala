@@ -4,9 +4,9 @@ import java.util.Scanner
 import scala.io.Source
 import scala.collection.mutable
 
-class Parser(val modules: Array[String], val token: String, val syntax_tree: String, val token_map: Map[String, String], val rules: Array[((NonTerminal, SymbolArray), YTree)]){
+class Parser(val modules: Array[String], val token: String, val token_enum: String, val tree: String, val tree_enum: String, val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_map: Map[Terminal, String], val non_terminal_set: Set[NonTerminal]){
     override def toString(): String = {
-        "Module(" + modules.mkString("[", ",", "]") + ")\n" + "Token(" + token + ")\n" + "SyntaxTree(" + syntax_tree + ")\n" + "TokenMap(" + token_map.toString() + ")\n" + "Rules(" + Parser.showRules(rules) + ")"
+        "Module(" + modules.mkString("[", ",", "]") + ")\n" + "Token(" + token + ")\n" + "TokenEnum(" + token_enum + ")\n" + "Tree(" + tree + ")\n" + "TreeEnum(" + tree_enum + ")\n" + ")\n" + "Rules(" + Parser.showRules(rules) + ")"
     }
 }
 
@@ -20,16 +20,40 @@ object Parser{
         }).mkString("[", ",", "]")
     }
 
+    def getTerminal(ts: mutable.ArrayBuffer[Terminal], x: Terminal): Terminal = {
+        for(t <- ts){
+            if(t == x){
+                return t
+            }
+        }
+        ts += x
+        x
+    }
+
+    def getNonTerminal(ns: mutable.ArrayBuffer[NonTerminal], x: NonTerminal): NonTerminal = {
+        for(n <- ns){
+            if(n == x){
+                return n
+            }
+        }
+        ns += x
+        x
+    }
+
     def readFile(fname: String): Parser = {
         var mode = 0
         val source = Source.fromFile(fname)
         val lines = source.getLines
 
         var token: String = null
-        var syntax_tree: String = null
+        var tree: String = null
         var mods: mutable.ArrayBuffer[String] = null
-        var map: mutable.Map[String, String] = null
+        var map: mutable.Map[Terminal, String] = null
         var rls: mutable.ArrayBuffer[(Production, YTree)] = null
+        var token_enum: String = null
+        var tree_enum: String = null
+        var terminals: mutable.ArrayBuffer[Terminal] = mutable.ArrayBuffer()
+        var non_terminals: mutable.ArrayBuffer[NonTerminal] = mutable.ArrayBuffer()
 
         lines.foreach({ line =>
             if(line.length == 0 || line(0) == '/'){
@@ -43,11 +67,17 @@ object Parser{
                     case "%token" => {
                         token = scanner.next()
                     }
-                    case "%syntax_tree" => {
-                        syntax_tree = scanner.next()
+                    case "%token_enum" => {
+                        token_enum = scanner.next()
+                    }
+                    case "%tree" => {
+                        tree = scanner.next()
+                    }
+                    case "%tree_enum" => {
+                        tree_enum = scanner.next()
                     }
                     case "%token_map" => {
-                        map = mutable.Map[String, String]()
+                        map = mutable.Map[Terminal, String]()
                         mode = 2
                     }
                     case "%rule" => {
@@ -62,7 +92,7 @@ object Parser{
                         mods += scanner.next()
                     }
                     case 2 => {
-                        map(scanner.next()) = scanner.next()
+                        map(new Terminal(scanner.next())) = scanner.next()
                     }
                     case 3 => {
                         val array: Array[String] = line.split("%").map(_.trim)
@@ -70,13 +100,13 @@ object Parser{
                             throw new Exception()
                         }
 
-                        val nt = new NonTerminal(array(0).trim)
+                        val nt = getNonTerminal(non_terminals, new NonTerminal(array(0).trim))
 
                         val ar: SymbolArray = new SymbolArray(array(1).split("\\s+").map({ x =>
                             if(x(0) >= 'A' && x(0) <= 'Z'){
-                                new NonTerminal(x)
+                                getNonTerminal(non_terminals, new NonTerminal(x))
                             }else if(x(0) >= 'a' && x(0) <= 'z' || x == "$"){
-                                new Terminal(x)
+                                getTerminal(terminals, new Terminal(x))
                             }else{
                                 throw new Exception()
                             }
@@ -95,7 +125,7 @@ object Parser{
                 }
             }
         })
-        new Parser(mods.toArray, token, syntax_tree, map.toMap, rls.toArray)
+        new Parser(mods.toArray, token, token_enum, tree, tree_enum, rls.toArray, map.toMap, non_terminals.toSet)
     }
 
     def makeTree(ls: List[String]): (YTree, List[String]) = {

@@ -3,16 +3,49 @@ package yacc
 import java.io.PrintWriter
 import scala.collection.mutable
 
-class YACC(val productions: Array[(NonTerminal, SymbolArray)]){
+class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_map: Map[Terminal, String], val non_terminal_set: Set[NonTerminal]){
     type Production = (NonTerminal, SymbolArray)
     type Term = ((NonTerminal, Location), Terminal)
     type Vertex = Set[Term]
     // type Edge = (Vertex, Symbol, Vertex)
 
+    val productions: Array[(NonTerminal, SymbolArray)] = rules.map(_._1)
     val nullable_set: Set[NonTerminal] = YACC.makeNullableSet(productions)
-    val terminal_set: Set[Terminal] = YACC.gatherTerminalSet(productions)
-    val non_terminal_set: Set[NonTerminal] = YACC.gatherNonTerminalSet(productions)
+    val terminal_set: Set[Terminal] = terminal_map.map(_._1).toSet
+//    val terminal_set: Set[Terminal] = YACC.gatherTerminalSet(productions)
+//    val non_terminal_set: Set[NonTerminal] = YACC.gatherNonTerminalSet(productions)
     val first_map: Map[Symbol, Set[Terminal]] = YACC.makeFirstSets(productions, nullable_set, terminal_set)
+
+    val terminal_n: Int = terminal_set.size
+    val non_terminal_n: Int = non_terminal_set.size
+
+    val terminal_imap: InteractiveMap[Terminal, Int] = {
+        var index: Int = 0
+        var m: mutable.Map[Terminal, Int] = mutable.Map()
+        for(t <- terminal_set){
+            m += { t -> index }
+            index += 1
+        }
+        new InteractiveMap[Terminal, Int](m.toMap)
+    }
+    val non_terminal_imap: InteractiveMap[NonTerminal, Int] = {
+        var index: Int = 0
+        var m: mutable.Map[NonTerminal, Int] = mutable.Map()
+        for(n <- non_terminal_set){
+            m += { n -> index }
+            index += 1
+        }
+        new InteractiveMap[NonTerminal, Int](m.toMap)
+    }
+    val production_imap: InteractiveMap[Production, Int] = {
+        var index: Int = 1
+        var m: mutable.Map[Production, Int] = mutable.Map()
+        for(p <- productions){
+            m += { p -> index }
+            index += 1
+        }
+        new InteractiveMap[Production, Int](m.toMap)
+    }
 
     def first(xs: Array[Symbol]): Set[Terminal] = {
         var set: Set[Terminal] = Set()
@@ -119,6 +152,58 @@ class YACC(val productions: Array[(NonTerminal, SymbolArray)]){
         }
 
         val vertex_n: Int = map.size
+
+        val shift_matrix: Array[Array[Int]] = {
+            var mat: Array[Array[Int]] = Array.ofDim[Int](vertex_n, terminal_n)
+            for(i <- 0 until vertex_n){
+                for(j <- 0 until terminal_n){
+                    mat(i)(j) = -1
+                }
+            }
+            for((s, sym, g) <- sete){
+                sym match{
+                    case t: Terminal => mat(s)(terminal_imap.keyA(t)) = g
+                    case _ => ;
+                }
+            }
+            mat
+        }
+        val reduce_matrix: Array[Array[mutable.ArrayBuffer[Int]]] = {
+            var mat: Array[Array[mutable.ArrayBuffer[Int]]] = Array.ofDim[mutable.ArrayBuffer[Int]](vertex_n, terminal_n)
+            for((v, i) <- map){
+                for(((a, l), z) <- v){
+                    if(l.isBottom){
+                        val r: Int = production_imap.keyA((a, l.array))
+                        val j: Int = terminal_imap.keyA(z)
+                        if(mat(i)(j) != null){
+                            mat(i)(j) += r
+                        }else{
+                            mat(i)(j) = mutable.ArrayBuffer[Int](r)
+                        }
+                    }
+                }
+            }
+            mat
+        }
+        val goto_matrix: Array[Array[Int]] = {
+            var mat: Array[Array[Int]] = Array.ofDim[Int](vertex_n, non_terminal_n)
+            for(i <- 0 until vertex_n){
+                for(j <- 0 until non_terminal_n){
+                    mat(i)(j) = -1
+                }
+            }
+            for((s, sym, g) <- sete){
+                sym match{
+                    case n: NonTerminal => mat(s)(non_terminal_imap.keyA(n)) = g
+                    case _ => ;
+                }
+            }
+            mat
+        }
+        /*
+        System.err.println(shift_matrix.map(_.mkString("[", ",", "]")).mkString("[", ",", "]"))
+        System.err.println(goto_matrix.map(_.mkString("[", ",", "]")).mkString("[", ",", "]"))
+        */
     }
 }
 
