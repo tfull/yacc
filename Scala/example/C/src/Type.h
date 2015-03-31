@@ -1,6 +1,9 @@
+#ifndef __TYPE_H__
+#define __TYPE_H__
+
 typedef enum{
     S_ADD, S_MUL, S_SUB, S_DIV, S_MOD, S_INT, S_MINUS
-}Type;
+}TreeType;
 
 struct _Tree;
 
@@ -45,13 +48,15 @@ typedef union{
     TreeDiv s_div;
     TreeMod s_mod;
     TreeMinus s_minus;
-}Node;
+}TreeValue;
 
 typedef struct _Tree{
-    Type type;
-    Node node;
+    TreeType type;
+    TreeValue node;
     unsigned int line_s;
     unsigned int char_s;
     unsigned int line_g;
     unsigned int char_g;
 }Tree;
+
+#endif

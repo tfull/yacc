@@ -1,0 +1,45 @@
+%module
+"Type.h"
+
+%token_class Token
+%token_type TokenType
+%token_value TokenValue
+%token_position line_s character_s line_g character_g
+
+%tree_class Tree
+%tree_type TreeType
+%tree_value TreeValue
+%tree_position line_s character_s line_g character_g
+
+%token_map
+plus T_PLUS
+star T_STAR
+int T_INT int t_int
+per T_PER
+slash T_SLASH
+minus T_MINUS
+lpar T_LPAR
+rpar T_RPAR
+$ T_END
+
+%tree_map
+TreeInt S_INT
+TreeAdd S_ADD
+TreeSub S_SUB
+TreeMul S_MUL
+TreeDiv S_DIV
+TreeMod S_MOD
+TreeMinus S_MINUS
+
+%rule
+S' % S $         %   $1
+S  % S plus A    %   TreeAdd $1 $3
+S  % S minus A   %   TreeSub $1 $3
+S  % A           %   $1
+A  % A star B    %   TreeMul $1 $3
+A  % A slash B   %   TreeDiv $1 $3
+A  % A per B     %   TreeMod $1 $3
+A  % B           %   $1
+B  % int         %   TreeInt $1
+B  % lpar S rpar %   $1
+B  % minus B     %   TreeMinus $2

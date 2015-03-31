@@ -38,7 +38,7 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
         new InteractiveMap[NonTerminal, Int](m.toMap)
     }
     val production_imap: InteractiveMap[Production, Int] = {
-        var index: Int = 1
+        var index: Int = 0
         var m: mutable.Map[Production, Int] = mutable.Map()
         for(p <- productions){
             m += { p -> index }
@@ -108,7 +108,7 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
         closure(w.toSet)
     }
 
-    def makeGraph(log_file: String){
+    def makeGraph(log_file: String): YACCItem = {
         var flag = true
         var init: Vertex = closure(Set(((new NonTerminal("S'"), new Location(new SymbolArray(Array(new NonTerminal("S"), new Terminal("$"))), 0)), null)))
         val endt = new Terminal("$")
@@ -168,7 +168,7 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
             }
             mat
         }
-        val reduce_matrix: Array[Array[mutable.ArrayBuffer[Int]]] = {
+        val reduce_m: Array[Array[mutable.ArrayBuffer[Int]]] = {
             var mat: Array[Array[mutable.ArrayBuffer[Int]]] = Array.ofDim[mutable.ArrayBuffer[Int]](vertex_n, terminal_n)
             for((v, i) <- map){
                 for(((a, l), z) <- v){
@@ -184,6 +184,21 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
                 }
             }
             mat
+        }
+        val reduce_matrix: Array[Array[Int]] = {
+            var a = Array.ofDim[Int](vertex_n, terminal_n)
+            for(i <- 0 until vertex_n){
+                for(j <- 0 until terminal_n){
+                    if(shift_matrix(i)(j) != -1){
+                        a(i)(j) = -1
+                    }else if(reduce_m(i)(j) == null){
+                        a(i)(j) = -1
+                    }else{
+                        a(i)(j) = reduce_m(i)(j)(0)
+                    }
+                }
+            }
+            a
         }
         val goto_matrix: Array[Array[Int]] = {
             var mat: Array[Array[Int]] = Array.ofDim[Int](vertex_n, non_terminal_n)
@@ -204,6 +219,8 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
         System.err.println(shift_matrix.map(_.mkString("[", ",", "]")).mkString("[", ",", "]"))
         System.err.println(goto_matrix.map(_.mkString("[", ",", "]")).mkString("[", ",", "]"))
         */
+
+        new YACCItem(shift_matrix, reduce_matrix, goto_matrix)
     }
 }
 

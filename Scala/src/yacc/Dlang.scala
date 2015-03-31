@@ -8,16 +8,11 @@ object Dlang{
         val parser: Parser = Parser.readFile(file_i)
         val yacc: YACC = new YACC(parser.rules, parser.terminal_map, parser.non_terminal_set)
         val writer: PrintWriter = new PrintWriter(file_o)
-        yacc.makeGraph(file_e)
+        //yacc.makeGraph(file_e)
 
         for(module <- parser.modules){
             writer.println("import " + module)
         }
-
-        writer.println("")
-
-        writer.println(parser.tree + " parse(" + parser.token + "[] tokens){")
-        writer.println("}")
 
         writer.close
     }

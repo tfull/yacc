@@ -93,3 +93,5 @@ object InteractiveMap{
         map.toMap
     }
 }
+
+class YACCItem(val shift: Array[Array[Int]], val reduce: Array[Array[Int]], val goto: Array[Array[Int]])
