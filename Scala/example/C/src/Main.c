@@ -4,6 +4,7 @@
 #include "Token.h"
 
 extern Token *tokenize(char*);
+extern Tree *parse(Token*);
 
 char *getLine(void){
     unsigned int index = 0U;
@@ -112,11 +113,21 @@ void debugTree(Tree *tree){
 int main(void){
     char *cs;
     Token *ts;
+    Tree *tree;
 
     cs = getLine();
     ts = tokenize(cs);
 
     debugTokens(ts);
+
+    tree = parse(ts);
+
+    if(tree == NULL){
+        exit(1);
+    }
+
+    debugTree(tree);
+    putchar('\n');
 
     free(cs);
     free(ts);

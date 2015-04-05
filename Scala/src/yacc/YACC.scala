@@ -110,12 +110,13 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
 
     def makeGraph(log_file: String): YACCItem = {
         var flag = true
-        var init: Vertex = closure(Set(((new NonTerminal("S'"), new Location(new SymbolArray(Array(new NonTerminal("S"), new Terminal("$"))), 0)), null)))
         val endt = new Terminal("$")
+        var init: Vertex = closure(Set(((new NonTerminal("S'"), new Location(new SymbolArray(Array(new NonTerminal("S"), endt)), 0)), null)))
         var sete: mutable.Set[/*Edge*/(Int, Symbol, Int)] = mutable.Set()
         var map: mutable.Map[Vertex, Int] = mutable.Map({init -> 0})
         var index = 1
         var log: PrintWriter = null
+        var acs: List[(Int, Int)] = List()
 
         while(flag){
             flag = false
@@ -125,6 +126,7 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
                     if(! l.isBottom){
                         val x = l.next
                         if(x == endt){
+                            acs = ((map(seti), terminal_imap.keyA(endt))) :: acs
                         }else{
                             val setj = goto(seti, x)
                             var es = map(seti)
@@ -152,6 +154,19 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
         }
 
         val vertex_n: Int = map.size
+
+        val accept_matrix: Array[Array[Boolean]] = {
+            var mat: Array[Array[Boolean]] = Array.ofDim[Boolean](vertex_n, terminal_n)
+            for(i <- 0 until vertex_n){
+                for(j <- 0 until terminal_n){
+                    mat(i)(j) = false
+                }
+            }
+            for((x, y) <- acs){
+                mat(x)(y) = true
+            }
+            mat
+        }
 
         val shift_matrix: Array[Array[Int]] = {
             var mat: Array[Array[Int]] = Array.ofDim[Int](vertex_n, terminal_n)
@@ -220,7 +235,7 @@ class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_m
         System.err.println(goto_matrix.map(_.mkString("[", ",", "]")).mkString("[", ",", "]"))
         */
 
-        new YACCItem(shift_matrix, reduce_matrix, goto_matrix)
+        new YACCItem(shift_matrix, reduce_matrix, goto_matrix, accept_matrix)
     }
 }
 

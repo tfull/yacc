@@ -34,7 +34,7 @@ class Location(val array: SymbolArray, val index: Int){
 }
 
 class YTree{
-    override def toString(): String = "Expression"
+    override def toString(): String = "YTree"
 }
 
 class YNode(val name: String, val trees: Array[YTree]) extends YTree{
@@ -43,6 +43,18 @@ class YNode(val name: String, val trees: Array[YTree]) extends YTree{
 
 class YLeaf(val number: Int) extends YTree{
     override def toString(): String = "YLeaf(" + number.toString + ")"
+}
+
+class VTree{
+    override def toString(): String = "VTree"
+}
+
+class VNode(val index: Int, val trees: Array[VTree]) extends VTree{
+    override def toString(): String = "VNode{" + index.toString + "}" + trees.mkString("(", ",", ")")
+}
+
+class VLeaf(val index: Int) extends VTree{
+    override def toString(): String = "VLeaf(" + index.toString + ")"
 }
 
 class Symbol{
@@ -94,4 +106,4 @@ object InteractiveMap{
     }
 }
 
-class YACCItem(val shift: Array[Array[Int]], val reduce: Array[Array[Int]], val goto: Array[Array[Int]])
+class YACCItem(val shift: Array[Array[Int]], val reduce: Array[Array[Int]], val goto: Array[Array[Int]], val accept: Array[Array[Boolean]])

@@ -4,7 +4,7 @@ import java.util.Scanner
 import scala.io.Source
 import scala.collection.mutable
 
-class Parser(val modules: Array[String], val token_class: String, val token_type: String, val token_value: String, val token_position: Array[String], val tree_class: String, val tree_type: String, val tree_value: String, val tree_position: Array[String], val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_map: Map[Terminal, String], val tree_map: Map[String, String], val non_terminal_set: Set[NonTerminal]){
+class Parser(val modules: Array[String], val token_class: String, val token_type: (String, String), val token_value: (String, String), val token_position: Array[String], val tree_class: String, val tree_type: (String, String), val tree_value: (String, String), val tree_position: Array[String], val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_map: Map[Terminal, String], val tree_map: Map[String, String], val non_terminal_set: Set[NonTerminal], val token_value_map: Map[Terminal, String], val tree_value_map: Map[String, String]){
     override def toString(): String = "modules(" + modules.mkString("[", ",", "]") + ")\n" + "Token(" + token_class + ")\n" + "TokenType(" + token_type + ")\n" + "Tree(" + tree_class + ")\n" + "TreeType(" + tree_type + ")\n" + ")\n" + "Rules(" + Parser.showRules(rules) + ")"
 }
 
@@ -44,16 +44,18 @@ object Parser{
         val lines = source.getLines
 
         var token_class: String = null
-        var token_type: String = null
-        var token_value: String = null
+        var token_type: (String, String) = null
+        var token_value: (String, String) = null
         var token_position: Array[String] = null
         var tree_class: String = null
-        var tree_type: String = null
-        var tree_value: String = null
+        var tree_type: (String, String) = null
+        var tree_value: (String, String) = null
         var tree_position: Array[String] = null
         var modules: mutable.ArrayBuffer[String] = null
         var terminal_map: mutable.Map[Terminal, String] = null
+        var token_value_map: mutable.Map[Terminal, String] = null
         var tree_map: mutable.Map[String, String] = null
+        var tree_value_map: mutable.Map[String, String] = null
         var rules: mutable.ArrayBuffer[(Production, YTree)] = null
         var terminals: mutable.ArrayBuffer[Terminal] = mutable.ArrayBuffer()
         var non_terminals: mutable.ArrayBuffer[NonTerminal] = mutable.ArrayBuffer()
@@ -71,10 +73,22 @@ object Parser{
                         token_class = scanner.next()
                     }
                     case "%token_type" => {
-                        token_type = scanner.next()
+                        val s1: String = scanner.next
+                        if(scanner.hasNext){
+                            val s2: String = scanner.next
+                            token_type = (s1, s2)
+                        }else{
+                            token_type = (s1, null)
+                        }
                     }
                     case "%token_value" => {
-                        token_value = scanner.next()
+                        val s1: String = scanner.next
+                        if(scanner.hasNext){
+                            val s2: String = scanner.next
+                            token_value = (s1, s2)
+                        }else{
+                            token_value = (s1, null)
+                        }
                     }
                     case "%token_position" => {
                         var a = new Array[String](4)
@@ -87,10 +101,22 @@ object Parser{
                         tree_class = scanner.next()
                     }
                     case "%tree_type" => {
-                        tree_type = scanner.next()
+                        val s1 = scanner.next
+                        if(scanner.hasNext){
+                            val s2 = scanner.next
+                            tree_type = (s1, s2)
+                        }else{
+                            tree_type = (s1, null)
+                        }
                     }
                     case "%tree_value" => {
-                        tree_value = scanner.next()
+                        val s1 = scanner.next
+                        if(scanner.hasNext){
+                            val s2 = scanner.next
+                            tree_value = (s1, s2)
+                        }else{
+                            tree_value = (s1, null)
+                        }
                     }
                     case "%tree_position" => {
                         var a = new Array[String](4)
@@ -101,10 +127,12 @@ object Parser{
                     }
                     case "%token_map" => {
                         terminal_map = mutable.Map[Terminal, String]()
+                        token_value_map = mutable.Map[Terminal, String]()
                         mode = 2
                     }
                     case "%tree_map" => {
                         tree_map = mutable.Map[String, String]()
+                        tree_value_map = mutable.Map[String, String]()
                         mode = 4
                     }
                     case "%rule" => {
@@ -119,7 +147,14 @@ object Parser{
                         modules += scanner.next()
                     }
                     case 2 => {
-                        terminal_map(new Terminal(scanner.next())) = scanner.next()
+                        val t: Terminal = new Terminal(scanner.next)
+                        val s: String = scanner.next
+
+                        terminal_map(t) = s
+
+                        if(scanner.hasNext){
+                            token_value_map(t) = scanner.next
+                        }
                     }
                     case 3 => {
                         val array: Array[String] = line.split("%").map(_.trim)
@@ -150,14 +185,16 @@ object Parser{
                         rules += (((nt, ar), ytree))
                     }
                     case 4 => {
-                        val k = scanner.next()
-                        val v = scanner.next()
+                        val k = scanner.next
+                        val v = scanner.next
+                        val vv = scanner.next
                         tree_map(k) = v
+                        tree_value_map(k) = vv
                     }
                 }
             }
         })
-        new Parser(modules.toArray, token_class, token_type, token_value, token_position, tree_class, tree_type, tree_value, tree_position, rules.toArray, terminal_map.toMap, tree_map.toMap, non_terminals.toSet)
+        new Parser(modules.toArray, token_class, token_type, token_value, token_position, tree_class, tree_type, tree_value, tree_position, rules.toArray, terminal_map.toMap, tree_map.toMap, non_terminals.toSet, token_value_map.toMap, tree_value_map.toMap)
     }
 
     def makeTree(ls: List[String]): (YTree, List[String]) = {
