@@ -6,7 +6,7 @@ typedef enum{
     T_STAR, T_MINUS, T_SLASH, T_PER, T_END
 }TokenType;
 
-typedef union{
+typedef struct{
     void *p;
     int t_int;
 }TokenValue;

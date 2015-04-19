@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef union{
+typedef struct{
 	Token token;
 	Tree *tree;
 }TFParserItem;

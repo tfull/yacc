@@ -40,7 +40,7 @@ typedef struct{
     struct _Tree *tree;
 }TreeMinus;
 
-typedef union{
+typedef struct{
     TreeInt s_int;
     TreeAdd s_add;
     TreeSub s_sub;
