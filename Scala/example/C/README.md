@@ -4,13 +4,12 @@
 
 ## Validation
 
-do not work accurately  
-various errors occur by various compiler and OS
+This program do not work accurately because of mysterious bug.  
+Various errors occur by various compiler and OS.  
+Here is the list of examples.
 
-### Examples of Errors
-
-1. g++ 4.9.2 (by Homebrew) in MacOS X 10.9  
-1.1. 1st time
+### 1. g++ 4.9.2 (by Homebrew) in MacOS X 10.9  
+#### 1.1. 1st time
 ```
 shell$ ./bin/Main
 1 + 2
@@ -66,7 +65,7 @@ Integer(2) [1:5 - 1:5]
 [ 3] state 3 and tid 8 (& 0x7f9709403a20)
 Add(Int(1),Int(2))
 ```
-1.2 2nd time (the same command and input as 1st time)
+#### 1.2. 2nd time (the same command and input as 1st time)
 ```
 shell$ ./bin/Main
 1 + 2
@@ -82,11 +81,11 @@ Integer(2) [1:5 - 1:5]
 [ 1] end for r_n = 8, stack.size = 1[0,2,0,]
 [ 1] --[0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, ... Segmentation fault 11
 ```
-2. clang 4.2.1 (?) in MacOS X 10.9  
+### 2. clang 4.2.1 (?) in MacOS X 10.9  
 the same result (1st valid and 2nd invalid) as 1.
-3. gcc 4.8.2 in Ubuntu 14.04  
+### 3. gcc 4.8.2 in Ubuntu 14.04  
 the same as 2nd time of 1. at any time
-4. gcc 4.6.2 in Ubuntu 12.02
+### 4. gcc 4.6.2 in Ubuntu 12.02
 ```
 shell$ ./bin/Main
 1 + 2
