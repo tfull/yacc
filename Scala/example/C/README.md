@@ -10,7 +10,7 @@ various errors occur by various compiler and OS
 ### Examples of Errors
 
 1. g++ 4.9.2 (by Homebrew) in MacOS X 10.9  
-1st time
+1.1. 1st time
 ```
 shell$ ./bin/Main
 1 + 2
@@ -66,7 +66,7 @@ Integer(2) [1:5 - 1:5]
 [ 3] state 3 and tid 8 (& 0x7f9709403a20)
 Add(Int(1),Int(2))
 ```
-2nd time (the same command and input as 1st time)
+1.2 2nd time (the same command and input as 1st time)
 ```
 shell$ ./bin/Main
 1 + 2
