@@ -12,7 +12,7 @@ char *getLine(void){
     char *cs;
     char c;
 
-    cs = malloc(sizeof(char) * capacity);
+    cs = (char *)malloc(sizeof(char) * capacity);
 
     while(1){
         c = getchar();
@@ -29,7 +29,7 @@ char *getLine(void){
             unsigned int i;
             char *ncs;
             capacity *= 2U;
-            ncs = malloc(sizeof(char) * capacity);
+            ncs = (char *)malloc(sizeof(char) * capacity);
             for(i = 0; i < index; i++){
                 ncs[i] = cs[i];
             }
@@ -110,6 +110,35 @@ void debugTree(Tree *tree){
     }
 }
 
+void freeTree(Tree *tree){
+    if(tree->type == S_INT){
+        free(tree);
+    }else if(tree->type == S_ADD){
+        freeTree(tree->node.s_add.tree1);
+        freeTree(tree->node.s_add.tree2);
+        free(tree);
+    }else if(tree->type == S_SUB){
+        freeTree(tree->node.s_sub.tree1);
+        freeTree(tree->node.s_sub.tree2);
+        free(tree);
+    }else if(tree->type == S_MUL){
+        freeTree(tree->node.s_mul.tree1);
+        freeTree(tree->node.s_mul.tree2);
+        free(tree);
+    }else if(tree->type == S_DIV){
+        freeTree(tree->node.s_div.tree1);
+        freeTree(tree->node.s_div.tree2);
+        free(tree);
+    }else if(tree->type == S_MOD){
+        freeTree(tree->node.s_mod.tree1);
+        freeTree(tree->node.s_mod.tree2);
+        free(tree);
+    }else if(tree->type == S_MINUS){
+        freeTree(tree->node.s_minus.tree);
+        free(tree);
+    }
+}
+
 int main(void){
     char *cs;
     Token *ts;
@@ -123,11 +152,15 @@ int main(void){
     tree = parse(ts);
 
     if(tree == NULL){
+        free(cs);
+        free(ts);
         exit(1);
     }
 
     debugTree(tree);
     putchar('\n');
+
+    freeTree(tree);
 
     free(cs);
     free(ts);
