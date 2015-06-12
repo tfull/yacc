@@ -17,3 +17,6 @@ instance Monad Result where
     Accept a >>= f = f a
     return = Accept
     fail s = Reject s
+
+class Debug a where
+    debug :: a -> String

@@ -1,6 +1,9 @@
 package yacc
 
 import java.io.PrintWriter
+import java.util.Scanner
+import scala.io.Source
+import scala.collection.mutable
 
 object Clang{
     def main(args: Array[String]){
@@ -8,7 +11,7 @@ object Clang{
 
         val (file_i, file_o, file_e): (String, String, String) =  Argument.parse(args)
         val parser: Parser = Parser.readFile(file_i)
-        val yacc: YACC = new YACC(parser.rules, parser.terminal_map, parser.non_terminal_set)
+        val yacc: YACC = new YACC(parser.rules.map(_._1), parser.terminal_map, parser.non_terminal_set)
         val writer: PrintWriter = new PrintWriter(file_o)
         val yacc_item = yacc.makeGraph(file_e)
         val tf_class: String = "TFParser"
@@ -175,7 +178,7 @@ object Clang{
             writer.println(indent + "return t0;")
         }
 
-        for((p, y) <- yacc.rules){
+        for((p, y) <- parser.rules){
             val i: Int = yacc.production_imap.keyA(p)
             writer.println("%s *%sReduce%d(%sItem *items){".format(parser.tree_class, tf_method, i, tf_class))
             makeReduceFunction(p, y)
@@ -183,10 +186,10 @@ object Clang{
         }
         writer.println()
 
-        writer.println("int %s_reduce_numbers[%d] = {%s};\n".format(tf_value, yacc.rules.size, (0 until yacc.rules.size).map(yacc.production_imap.keyB(_)._2.array.size).mkString(",")))
-        writer.println("%s* (*%s_reduce_functions[%d])(%sItem*) = {\n%s\n};\n".format(parser.tree_class, tf_value, yacc.rules.size, tf_class, (0 until yacc.rules.size).map(indent + tf_method + "Reduce" + _.toString).mkString(",\n")))
+        writer.println("int %s_reduce_numbers[%d] = {%s};\n".format(tf_value, parser.rules.size, (0 until parser.rules.size).map(yacc.production_imap.keyB(_)._2.array.size).mkString(",")))
+        writer.println("%s* (*%s_reduce_functions[%d])(%sItem*) = {\n%s\n};\n".format(parser.tree_class, tf_value, parser.rules.size, tf_class, (0 until parser.rules.size).map(indent + tf_method + "Reduce" + _.toString).mkString(",\n")))
 
-        writer.println("int %s_goto_numbers[%d] = {%s};\n".format(tf_value, yacc.rules.size, (0 until yacc.rules.size).map({ x => yacc.non_terminal_imap.keyA(yacc.production_imap.keyB(x)._1)}).mkString(",")))
+        writer.println("int %s_goto_numbers[%d] = {%s};\n".format(tf_value, parser.rules.size, (0 until parser.rules.size).map({ x => yacc.non_terminal_imap.keyA(yacc.production_imap.keyB(x)._1)}).mkString(",")))
 
         writer.println("%sStack %sStack_allocate(){".format(tf_class, tf_class))
         writer.println("%sStack stack;".format(indent + tf_class))
@@ -276,7 +279,7 @@ object Clang{
         writer.println("%sStack_push(&stack, s_item);".format(indent * 3 + tf_class))
         writer.println("%stokens ++;".format(indent * 3))
         writer.println("%s}else if(%s_reduce[state][tid] != -1){".format(indent * 2, tf_value))
-        writer.println("%sItem items[%d];".format(indent * 3 + tf_class, yacc.rules.map(_._1._2.array.size).max))
+        writer.println("%sItem items[%d];".format(indent * 3 + tf_class, parser.rules.map(_._1._2.array.size).max))
         writer.println("%s *tree;".format(indent * 3 + parser.tree_class))
         writer.println("%sItem item;".format(indent * 3 + tf_class))
         writer.println("%sStackItem s_item;".format(indent * 3 + tf_class))
@@ -316,5 +319,195 @@ object Clang{
                 (new VLeaf(i), i + 1)
             }
         }
+    }
+
+    class Parser(val modules: Array[String], val token_class: String, val token_type: (String, String), val token_value: (String, String), val token_position: Array[String], val tree_class: String, val tree_type: (String, String), val tree_value: (String, String), val tree_position: Array[String], val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_map: Map[Terminal, String], val tree_map: Map[String, String], val non_terminal_set: Set[NonTerminal], val token_value_map: Map[Terminal, String], val tree_value_map: Map[String, String]){
+        override def toString(): String = "modules(" + modules.mkString("[", ",", "]") + ")\n" + "Token(" + token_class + ")\n" + "TokenType(" + token_type + ")\n" + "Tree(" + tree_class + ")\n" + "TreeType(" + tree_type + ")\n" + ")\n" + "Rules(" + Parser.showRules(rules) + ")"
+    }
+
+    object Parser{
+        type Production = (NonTerminal, SymbolArray)
+
+        def showRules(rules: Array[(Production, YTree)]): String = {
+            rules.map({ rule => 
+                val ((nt, xs), tr) = rule
+                "{ " + nt.toString() + " -> " + xs.toString() + " => " + tr.toString() + " }"
+            }).mkString("[", ",", "]")
+        }
+
+        def getTerminal(ts: mutable.ArrayBuffer[Terminal], x: Terminal): Terminal = {
+            for(t <- ts){
+                if(t == x){
+                    return t
+                }
+            }
+            ts += x
+            x
+        }
+
+        def getNonTerminal(ns: mutable.ArrayBuffer[NonTerminal], x: NonTerminal): NonTerminal = {
+            for(n <- ns){
+                if(n == x){
+                    return n
+                }
+            }
+            ns += x
+            x
+        }
+
+        def readFile(fname: String): Parser = {
+            var mode = 0
+            val source = Source.fromFile(fname)
+            val lines = source.getLines
+
+            var token_class: String = null
+            var token_type: (String, String) = null
+            var token_value: (String, String) = null
+            var token_position: Array[String] = null
+            var tree_class: String = null
+            var tree_type: (String, String) = null
+            var tree_value: (String, String) = null
+            var tree_position: Array[String] = null
+            var modules: mutable.ArrayBuffer[String] = null
+            var terminal_map: mutable.Map[Terminal, String] = null
+            var token_value_map: mutable.Map[Terminal, String] = null
+            var tree_map: mutable.Map[String, String] = null
+            var tree_value_map: mutable.Map[String, String] = null
+            var rules: mutable.ArrayBuffer[(Production, YTree)] = null
+            var terminals: mutable.ArrayBuffer[Terminal] = mutable.ArrayBuffer()
+            var non_terminals: mutable.ArrayBuffer[NonTerminal] = mutable.ArrayBuffer()
+
+            lines.foreach({ line =>
+                if(line.length == 0 || line(0) == '/'){
+                }else if(line(0) == '%'){
+                    var scanner = new Scanner(line)
+                    scanner.next() match{
+                        case "%module" => {
+                            modules = mutable.ArrayBuffer()
+                            mode = 1
+                        }
+                        case "%token_class" => {
+                            token_class = scanner.next()
+                        }
+                        case "%token_type" => {
+                            val s1: String = scanner.next
+                            if(scanner.hasNext){
+                                val s2: String = scanner.next
+                                token_type = (s1, s2)
+                            }else{
+                                token_type = (s1, null)
+                            }
+                        }
+                        case "%token_value" => {
+                            val s1: String = scanner.next
+                            if(scanner.hasNext){
+                                val s2: String = scanner.next
+                                token_value = (s1, s2)
+                            }else{
+                                token_value = (s1, null)
+                            }
+                        }
+                        case "%token_position" => {
+                            var a = new Array[String](4)
+                            for(i <- 0 until 4){
+                                a(i) = scanner.next()
+                            }
+                            token_position = a
+                        }
+                        case "%tree_class" => {
+                            tree_class = scanner.next()
+                        }
+                        case "%tree_type" => {
+                            val s1 = scanner.next
+                            if(scanner.hasNext){
+                                val s2 = scanner.next
+                                tree_type = (s1, s2)
+                            }else{
+                                tree_type = (s1, null)
+                            }
+                        }
+                        case "%tree_value" => {
+                            val s1 = scanner.next
+                            if(scanner.hasNext){
+                                val s2 = scanner.next
+                                tree_value = (s1, s2)
+                            }else{
+                                tree_value = (s1, null)
+                            }
+                        }
+                        case "%tree_position" => {
+                            var a = new Array[String](4)
+                            for(i <- 0 until 4){
+                                a(i) = scanner.next()
+                            }
+                            tree_position = a
+                        }
+                        case "%token_map" => {
+                            terminal_map = mutable.Map[Terminal, String]()
+                            token_value_map = mutable.Map[Terminal, String]()
+                            mode = 2
+                        }
+                        case "%tree_map" => {
+                            tree_map = mutable.Map[String, String]()
+                            tree_value_map = mutable.Map[String, String]()
+                            mode = 4
+                        }
+                        case "%rule" => {
+                            rules = mutable.ArrayBuffer[(Production, YTree)]()
+                            mode = 3
+                        }
+                    }
+                }else{
+                    var scanner = new Scanner(line)
+                    mode match{
+                        case 1 => {
+                            modules += scanner.next()
+                        }
+                        case 2 => {
+                            val t: Terminal = new Terminal(scanner.next)
+                            val s: String = scanner.next
+
+                            terminal_map(t) = s
+
+                            if(scanner.hasNext){
+                                token_value_map(t) = scanner.next
+                            }
+                        }
+                        case 3 => {
+                            val array: Array[String] = line.split("%").map(_.trim)
+                            if(array.length != 3){
+                                throw new Exception()
+                            }
+
+                            val nt = getNonTerminal(non_terminals, new NonTerminal(array(0).trim))
+
+                            val ar: SymbolArray = new SymbolArray(array(1).split("\\s+").map({ x =>
+                                if(x(0) >= 'A' && x(0) <= 'Z'){
+                                    getNonTerminal(non_terminals, new NonTerminal(x))
+                                }else if(x(0) >= 'a' && x(0) <= 'z' || x == "$"){
+                                    getTerminal(terminals, new Terminal(x))
+                                }else{
+                                    throw new Exception()
+                                }
+                            }))
+
+                            val ytree = YACC.makeTree(array(2))
+
+                            rules += (((nt, ar), ytree))
+                        }
+                        case 4 => {
+                            val k = scanner.next
+                            val v = scanner.next
+                            val vv = scanner.next
+                            tree_map(k) = v
+                            tree_value_map(k) = vv
+                        }
+                    }
+                }
+            })
+            new Parser(modules.toArray, token_class, token_type, token_value, token_position, tree_class, tree_type, tree_value, tree_position, rules.toArray, terminal_map.toMap, tree_map.toMap, non_terminals.toSet, token_value_map.toMap, tree_value_map.toMap)
+        }
+
+        
     }
 }

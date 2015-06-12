@@ -4,6 +4,7 @@ import scala.collection.mutable
 
 class SymbolArray(val array: Array[Symbol]){
     val length: Int = array.length
+    val size: Int = array.size
     def apply(index: Int) = array(index)
     def forall = array.forall(_)
     override def toString(): String = array.mkString("[", ",", "]")

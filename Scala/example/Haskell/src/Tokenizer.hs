@@ -63,9 +63,9 @@ scan Int (store, sp) prev now (c : cs)
             _ -> fail $ "scan(Int): " ++ showPosition now
 
 scanBottom :: Monad m => Automaton -> Store -> Position -> m [T.Token]
-scanBottom Plain (store, _) _
-    | store == [] = return []
+scanBottom Plain (store, _) pos
+    | store == [] = return [T.makeEnd pos]
     | otherwise = fail "failed in scanBottom(Plain)"
 scanBottom Int (store, sp) p
     | store == [] = fail "failed in scanBottom(Int)"
-    | otherwise = return [T.make (T.Int . read . L.reverse $ store) sp p]
+    | otherwise = return [T.make (T.Int . read . L.reverse $ store) sp p, T.makeEnd p]

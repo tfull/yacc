@@ -3,13 +3,13 @@ package yacc
 import java.io.PrintWriter
 import scala.collection.mutable
 
-class YACC(val rules: Array[((NonTerminal, SymbolArray), YTree)], val terminal_map: Map[Terminal, String], val non_terminal_set: Set[NonTerminal]){
+class YACC(val productions: Array[(NonTerminal, SymbolArray)], val terminal_map: Map[Terminal, String], val non_terminal_set: Set[NonTerminal]){
     type Production = (NonTerminal, SymbolArray)
     type Term = ((NonTerminal, Location), Terminal)
     type Vertex = Set[Term]
     // type Edge = (Vertex, Symbol, Vertex)
 
-    val productions: Array[(NonTerminal, SymbolArray)] = rules.map(_._1)
+    //val productions: Array[(NonTerminal, SymbolArray)] = rules.map(_._1)
     val nullable_set: Set[NonTerminal] = YACC.makeNullableSet(productions)
     val terminal_set: Set[Terminal] = terminal_map.map(_._1).toSet
 //    val terminal_set: Set[Terminal] = YACC.gatherTerminalSet(productions)
@@ -343,5 +343,49 @@ object YACC{
         }
 
         m_map.toMap
+    }
+
+    def makeTree(s: String): YTree = {
+        def sub(ls: List[String]): (YTree, List[String]) = {
+            ls match{
+                case "(" :: xs => {
+                    var zs = mutable.ArrayBuffer[YTree]()
+                    var ys = xs
+                    while(ys(0) != ")"){
+                        val (t, nys) = sub(ys)
+                        zs += t
+                        ys = nys
+                    }
+                    zs(0) match{
+                        case yn: YNode => {
+                            (new YNode(yn.name, zs.toArray.slice(1, zs.length)), ys.slice(1, ys.length))
+                        }
+                        case yn: YLeaf => {
+                            if(zs.length > 1){
+                                throw new Exception()
+                            }else{
+                                (yn, ys.slice(1, ys.length))
+                            }
+                        }
+                    }
+                }
+                case ")" :: _ => throw new Exception()
+                case x :: xs => {
+                    if(x(0) >= 'A' && x(0) <= 'Z'){
+                        (new YNode(x, Array()), xs)
+                    }else if(x(0) == '$'){
+                        (new YLeaf(x.slice(1, x.length).toInt), xs)
+                    }else{
+                        throw new Exception()
+                    }
+                }
+                case _ => {
+                    throw new Exception()
+                }
+            }
+        }
+
+        val k = sub("(" :: s.replace("(", " ( ").replace(")", " ) ").split("\\s+").toList ++ List(")"))
+        k._1
     }
 }
